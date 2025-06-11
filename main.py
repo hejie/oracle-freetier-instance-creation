@@ -105,7 +105,7 @@ def write_into_file(file_path, data):
         file_path (str): The path of the file.
         data (str): The data to be written into the file.
     """
-    with open(file_path, mode="a", encoding="utf-8") as file_writer:
+    with open(file_path, mode="w", encoding="utf-8") as file_writer:
         file_writer.write(data)
 
 
