@@ -41,8 +41,9 @@ BOOT_VOLUME_SIZE = os.getenv("BOOT_VOLUME_SIZE", "50").strip()
 NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL", 'False').strip().lower() == 'true'
 EMAIL = os.getenv("EMAIL", "").strip()
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "").strip()
-DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK", "").strip()
-
+NOTIFY_TELEGRAM = os.getenv("NOTIFY_TELEGRAM", "").strip()
+TELEGRAM_POST = os.getenv("TELEGRAM_POST", "").strip()
+TELEGRAM_USER_ID = os.getenv("TELEGRAM_USER_ID", "").strip()
 # Read the configuration from oci_config file
 config = configparser.ConfigParser()
 try:
@@ -55,7 +56,7 @@ try:
                                 SSH_AUTHORIZED_KEYS_FILE, OCI_IMAGE_ID, 
                                 OCI_COMPUTE_SHAPE, SECOND_MICRO_INSTANCE, 
                                 OCI_SUBNET_ID, OS_VERSION, NOTIFY_EMAIL,EMAIL,
-                                EMAIL_PASSWORD, DISCORD_WEBHOOK]
+                                EMAIL_PASSWORD, TELEGRAM_POST]
                         )
     config_has_spaces = any(' ' in value for section in config.sections() 
                             for _, value in config.items(section))
@@ -206,7 +207,8 @@ def create_instance_details_file_and_notify(instance, shape=ARM_SHAPE):
 
     if NOTIFY_EMAIL:
         send_email('OCI INSTANCE CREATED', html_body, EMAIL, EMAIL_PASSWORD)
-
+    if NOTIFY_TELEGRAM:
+       send_telegram_message(html_body)
 
 def notify_on_failure(failure_msg):
     """Notifies users when the Instance Creation Failed due to an error that's
@@ -360,12 +362,15 @@ def read_or_generate_ssh_public_key(public_key_file: Union[str, Path]):
     return ssh_public_key
 
 
-def send_discord_message(message):
+def send_telegram_message(message):
     """Send a message to Discord using the webhook URL if available."""
-    if DISCORD_WEBHOOK:
-        payload = {"content": message}
+    if NOTIFY_TELEGRAM:
+        payload = {
+        "chat_id": TELEGRAM_USER_ID,
+        "text": message,
+        }
         try:
-            response = requests.post(DISCORD_WEBHOOK, json=payload)
+            response = requests.post(TELEGRAM_POST, json=payload)
             response.raise_for_status()
         except requests.RequestException as e:
             logging.error("Failed to send Discord message: %s", e)
@@ -486,11 +491,11 @@ def launch_instance():
 
 
 if __name__ == "__main__":
-    send_discord_message("🚀 OCI Instance Creation Script: Starting up! Let's create some cloud magic!")
+    send_telegram_message("🚀 OCI Instance Creation Script: Starting up! Let's create some cloud magic!")
     try:
         launch_instance()
-        send_discord_message("🎉 Success! OCI Instance has been created. Time to celebrate!")
+        send_telegram_message("🎉 Success! OCI Instance has been created. Time to celebrate!")
     except Exception as e:
         error_message = f"😱 Oops! Something went wrong with the OCI Instance Creation Script:\n{str(e)}"
-        send_discord_message(error_message)
+        send_telegram_message(error_message)
         raise
